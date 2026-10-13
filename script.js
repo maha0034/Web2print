@@ -18,7 +18,9 @@ const GENERIC_DESC = 'A Scan Global Logistics branded item, available to order t
 // type = which illustration to draw (see art())
 const PRODUCTS = [
   // Giveaways
-  { id: 'tote-black',   name: 'Tote bag',                 price: 19,     cat: 'giveaways',   type: 'tote' },
+  { id: 'tote-black',   name: 'Tote bag',                 price: 19,     cat: 'giveaways',   type: 'tote', keywords: 'bag totebag taske pose indkoebspose' },
+  { id: 'thermo-cup',   name: 'Thermo cup',               price: 89,     cat: 'giveaways',   type: 'thermo', keywords: 'thermos termokop termo kop cup travel mug',
+    desc: 'Insulated stainless steel thermo cup with a black grip and lid, printed with the Scan Global Logistics logo. Keeps drinks hot or cold on the road and fits most cup holders. A practical giveaway for colleagues, drivers and customers.' },
   { id: 'tote-slim',    name: 'Tote bag, slim',           price: 19,     cat: 'giveaways',   type: 'tote' },
   { id: 'mug',          name: 'SGL coffee mug',           price: 35,     cat: 'giveaways',   type: 'mug' },
   { id: 'notebook',     name: 'A5 notebook',              price: 29,     cat: 'giveaways',   type: 'notebook' },
@@ -35,7 +37,7 @@ const PRODUCTS = [
   { id: 'business-card',name: 'Business card',            price: 9,      cat: 'printing',    type: 'card' },
   { id: 'letterhead',   name: 'Letterhead',               price: 9,      cat: 'printing',    type: 'card' },
   { id: 'envelope',     name: 'Envelope, C5',             price: 6,      cat: 'printing',    type: 'card' },
-  { id: 'brochure',     name: 'Company brochure',         price: 14,     cat: 'printing',    type: 'folder' },
+  { id: 'brochure',     name: 'Company brochure',         price: 14,     cat: 'printing',    type: 'folder', keywords: 'brochure firmabrochure folder katalog' },
   { id: 'compliment',   name: 'Compliment slip',          price: 7,      cat: 'printing',    type: 'card' },
   { id: 'sticker-sheet',name: 'Sticker sheet',            price: 11,     cat: 'printing',    type: 'card' },
   // Christmas gifts 2026
@@ -54,6 +56,7 @@ const PHOTOS = {
   folder: { img: 'assets/images/folder.png', hover: 'assets/images/folder-hover.jpg' },
   card:   { img: 'assets/images/card.png',   hover: 'assets/images/card-hover.jpg' },
   truck:  { img: 'assets/images/truck.png',  hover: 'assets/images/truck-hover.jpg' },
+  thermo: { img: 'assets/images/thermo.png', hover: 'assets/images/thermo-hover.jpg' },
   // Illustrated (not photographed) – replace with real photos when available
   mug:      { img: 'assets/images/mug.svg',      hover: 'assets/images/mug-hover.svg' },
   notebook: { img: 'assets/images/notebook.svg', hover: 'assets/images/notebook-hover.svg' },
@@ -133,15 +136,17 @@ function renderHeader() {
     <header class="site-header">
       <a class="logo" href="home.html"><img src="assets/images/logo.svg" alt="Scan Global Logistics – home"></a>
       <div class="header-right">
-        <form class="search" role="search" onsubmit="return false">
-          <input type="search" placeholder="search..." aria-label="Search">
+        <form class="search" role="search" action="search.html" autocomplete="off">
+          <input type="search" name="q" placeholder="search..." aria-label="Search" value="${(location.pathname.endsWith('search.html') ? params.get('q') || '' : '').replace(/"/g, '&quot;')}">
           <button type="submit" aria-label="Search">${ICON.search}</button>
+          <div class="suggest" hidden></div>
         </form>
         <a class="icon-link" href="index.html" aria-label="Account">${ICON.user}</a>
         <a class="icon-link" href="cart.html" aria-label="My bag">${ICON.cart}<span class="cart-badge"></span></a>
       </div>
     </header>`;
   updateBadge();
+  initSearch();
 }
 
 function renderFooter() {
@@ -169,6 +174,41 @@ function renderFooter() {
         <span class="linkedin">Linked<b style="background:#fff;color:#2e2e2e;border-radius:2px;padding:0 2px;margin-left:1px">in</b></span>
       </div>
     </footer>`;
+}
+
+/* ---------- Search ---------- */
+function searchProducts(q) {
+  const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!terms.length) return [];
+  return PRODUCTS.filter(p => {
+    const hay = `${p.name} ${getCat(p.cat).name} ${p.keywords || ''}`.toLowerCase();
+    return terms.every(t => hay.includes(t));
+  });
+}
+
+function initSearch() {
+  const form = $('.search');
+  if (!form) return;
+  const input = $('input', form), box = $('.suggest', form);
+  const close = () => { box.hidden = true; };
+  const open = () => {
+    const q = input.value.trim();
+    if (!q) return close();
+    const hits = searchProducts(q);
+    box.innerHTML = hits.length
+      ? hits.slice(0, 5).map(p => {
+          const c = getCat(p.cat), ph = PHOTOS[p.type];
+          return `<a href="product.html?id=${p.id}"><span class="s-thumb" style="background:${c.bg}">${ph ? `<img src="${ph.img}" alt="">` : ''}</span>
+            <span class="s-text"><strong>${p.name}</strong><small>${c.name}</small></span><span class="s-price">${fmt(p.price)}</span></a>`;
+        }).join('') + (hits.length > 5 ? `<a class="s-all" href="search.html?q=${encodeURIComponent(q)}">See all ${hits.length} results</a>` : '')
+      : '<p class="s-none">No products found</p>';
+    box.hidden = false;
+  };
+  input.addEventListener('input', open);
+  input.addEventListener('focus', open);
+  input.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  document.addEventListener('click', e => { if (!form.contains(e.target)) close(); });
+  form.addEventListener('submit', e => { if (!input.value.trim()) e.preventDefault(); });
 }
 
 /* ---------- Reusable pieces ---------- */
@@ -276,6 +316,21 @@ const pages = {
           </section>`).join('')}
       </div>`;
     $$('.row-carousel').forEach(initRowCarousel);
+  },
+
+  /* Search results */
+  search() {
+    const q = (params.get('q') || '').trim();
+    const hits = searchProducts(q);
+    const safe = q.replace(/</g, '&lt;');
+    $('#app').innerHTML = `
+      <div class="wrap all-products">
+        ${heading(q ? `Results for \u201c${safe}\u201d` : 'Search')}
+        ${hits.length
+          ? `<p class="result-count">${hits.length} product${hits.length > 1 ? 's' : ''} found</p><div class="grid-4">${hits.map(card).join('')}</div>`
+          : `<div class="empty">${q ? 'No products match your search.' : 'Type something in the search box.'}<br><a class="btn btn-red" href="shop.html">Browse all products</a></div>`}
+      </div>`;
+    document.title = `Search – SGL Internal Shop`;
   },
 
   /* Category page */
