@@ -8,10 +8,10 @@
    The product list lives in products.js (loaded before this file).
    Categories, their card colour and the home-page favourites are set here. */
 const CATEGORIES = [
-  { slug: 'giveaways',       name: 'Giveaways',                    bg: '#eef0c8', img: 'assets/images/cat-giveaways.jpg' },
-  { slug: 'office-deco',     name: 'Office deco',                  bg: '#d9d9d9', img: 'assets/images/cat-office-deco.jpg' },
-  { slug: 'printing',        name: 'On-demand printing materials', bg: '#c9d6e3', img: 'assets/images/cat-printing.jpg' },
-  { slug: 'office-supplies', name: 'Office supplies',              bg: '#e8b8b8', img: 'assets/images/cat-office-supplies.jpg' },
+  { slug: 'giveaways',       name: 'Giveaways',                    bg: '#dce5ce', img: 'assets/images/cat-giveaways.jpg' },
+  { slug: 'office-deco',     name: 'Office deco',                  bg: '#dde5ec', img: 'assets/images/cat-office-deco.jpg' },
+  { slug: 'printing',        name: 'On-demand printing materials', bg: '#f1eadc', img: 'assets/images/cat-printing.jpg' },
+  { slug: 'office-supplies', name: 'Office supplies',              bg: '#dcc2c8', img: 'assets/images/cat-office-supplies.jpg' },
 ];
 
 const GENERIC_DESC = 'A Scan Global Logistics branded item, available to order through the internal shop. Contact Marcom if you need a custom quantity or a different design.';
@@ -30,6 +30,7 @@ const SUB_DESC = {
 };
 
 const FAVORITES = ['thermo-cup', 'cotton-tote-bag', 'business-card-standard', 'our-virtues-roll-up-red'];
+const SHIPPING_EXPRESS = 49;  // DKK excl. VAT; standard shipping is free
 const VAT_RATE = 0.25;
 
 /* ---------- Helpers ---------- */
@@ -296,6 +297,8 @@ const pages = {
 
   /* Home */
   home() {
+    // carousel order: Office deco on the far left, Giveaways in the centre (start slide)
+    const HOME_CATS = ['office-deco', 'giveaways', 'printing', 'office-supplies'].map(getCat);
     $('#app').innerHTML = `
       <section class="hero">
         <h1>SGL Internal Shop</h1>
@@ -306,12 +309,12 @@ const pages = {
         <div class="wrap">${heading('Browse by category:')}</div>
         <div class="cat-carousel" aria-roledescription="carousel" aria-label="Product categories">
           <div class="cat-viewport"><div class="cat-track">
-            ${CATEGORIES.map(c => `<a class="cat-slide" href="category.html?cat=${c.slug}"
+            ${HOME_CATS.map(c => `<a class="cat-slide" href="category.html?cat=${c.slug}"
               style="--bg:${c.bg}; background-image:url('${c.img}'), linear-gradient(135deg,#2a2a2a,#555); background-size:cover; background-position:center;"><span>${c.name}</span></a>`).join('')}
           </div></div>
           <button class="arrow-btn cat-arrow prev" aria-label="Previous category">${ICON.left}</button>
           <button class="arrow-btn cat-arrow next" aria-label="Next category">${ICON.right}</button>
-          <div class="dots">${CATEGORIES.map((c, i) => `<button aria-label="Show ${c.name}" data-i="${i}"></button>`).join('')}</div>
+          <div class="dots">${HOME_CATS.map((c, i) => `<button aria-label="Show ${c.name}" data-i="${i}"></button>`).join('')}</div>
         </div>
       </section>
       <section class="section wrap">
@@ -367,7 +370,10 @@ const pages = {
           ? `<div class="grid-4">${list.map(card).join('')}</div>`
           : `<div class="row-carousel">${rowCarouselHTML(list.map(card).join(''))}</div>`;
         return `<section class="panel" id="${c.slug}">
-          <h2 class="panel-title">${c.name}</h2>
+          <div class="panel-head">
+            <h2 class="panel-title">${c.name}</h2>
+            <a class="see-all" href="category.html?cat=${c.slug}">Se alle produkter <svg viewBox="0 0 24 16" aria-hidden="true"><path d="M0 0h6l8 8-8 8H0l8-8zM10 0h6l8 8-8 8h-6l8-8z"/></svg></a>
+          </div>
           ${body}
         </section>`;
       }).join('');
@@ -538,53 +544,81 @@ const pages = {
         <section>
           <h2 class="col-title">Billing</h2>
           <form class="billing" id="billing" novalidate>
-            ${field('Contact person', 'contact')}
-            ${field('Email', 'email', true, 'email')}
-            ${field('Phone/Mobile', 'phone', true, 'tel')}
-            <div class="gap"></div>
-            ${field('Email for tracking', 'tracking', true, 'email')}
-            <label class="insurance">Insurance
-              <select name="insurance" aria-label="Insurance"><option>Yes</option><option>No</option></select>
-            </label>
+            <h3 class="form-h">Contact</h3>
+            <div class="row2">
+              ${field('Contact person', 'contact')}
+              ${field('Email', 'email', true, 'email')}
+              ${field('Phone/Mobile', 'phone', true, 'tel')}
+              <div class="tracking">
+                ${field('Email for tracking', 'tracking', true, 'email')}
+                <button class="add-link" type="button" id="add-tracking">+ Add another tracking email</button>
+              </div>
+            </div>
+            <h3 class="form-h">Invoice</h3>
             ${field('Initials and ref. for invoice', 'invoice')}
-            <div class="gap"></div>
-            ${field('Delivery company name', 'company')}
-            ${field('Delivery contact', 'dcontact')}
-            ${field('Contact phone for delivery', 'dphone', true, 'tel')}
-            ${field('Contact Email for delivery', 'demail', true, 'email')}
-            <div class="gap"></div>
-            ${field('Delivery adress', 'address')}
-            ${field('Adress 2', 'address2', false)}
-            <div class="split">${field('Postalcode', 'zip')}${field('Postal place', 'city')}</div>
-            ${field('Country', 'country')}
+            <h3 class="form-h">Delivery contact</h3>
+            <div class="row2">
+              ${field('Delivery company name', 'company')}
+              ${field('Delivery contact', 'dcontact')}
+              ${field('Contact phone for delivery', 'dphone', true, 'tel')}
+              ${field('Contact Email for delivery', 'demail', true, 'email')}
+            </div>
+            <h3 class="form-h">Delivery address</h3>
+            <div class="row2">
+              ${field('Delivery adress', 'address')}
+              ${field('Adress 2', 'address2', false)}
+            </div>
+            <div class="row3">
+              ${field('Postalcode', 'zip')}${field('Postal place', 'city')}${field('Country', 'country')}
+            </div>
           </form>
         </section>
         <section class="summary">
           <h2 class="col-title">Products</h2>
           <div id="lines"></div>
+          <h3 class="form-h">Shipping</h3>
+          <div class="ship-opts" id="ship"></div>
           <hr>
           <div class="sum-box" id="sum"></div>
           <div class="order-actions">
-            <button class="btn btn-red" type="submit" form="billing" id="place">Place order</button>
             <a class="btn btn-outline" href="shop.html">Keep Shopping</a>
+            <button class="btn btn-red" type="submit" form="billing" id="place">Place order</button>
           </div>
         </section>
       </div>`;
 
-    const lines = $('#lines'), sum = $('#sum'), place = $('#place');
+    // extra tracking emails (only one is shown until the red link is used)
+    $('#add-tracking').addEventListener('click', e => {
+      const inp = document.createElement('input');
+      inp.type = 'email'; inp.name = 'tracking'; inp.placeholder = 'Another email for tracking'; inp.setAttribute('aria-label', 'Another email for tracking');
+      e.currentTarget.before(inp);
+      inp.focus();
+    });
+
+    const lines = $('#lines'), sum = $('#sum'), place = $('#place'), ship = $('#ship');
+    let express = false;
 
     function renderSummary() {
       const items = Cart.lines();
-      const sub = Cart.subtotal(), vat = sub * VAT_RATE, total = sub + vat;
+      const sub = Cart.subtotal();
+      const shipping = items.length && express ? SHIPPING_EXPRESS : 0;
+      const net = sub + shipping, vat = net * VAT_RATE, total = net + vat;
       lines.innerHTML = items.length
         ? items.map(l => lineItemHTML(l)).join('')
         : '<div class="empty">Your bag is empty.</div>';
+      ship.innerHTML = `
+        <label class="opt"><input type="radio" name="ship" value="std" ${express ? '' : 'checked'}><span>Standard</span><b>Free</b></label>
+        <label class="opt"><input type="radio" name="ship" value="exp" ${express ? 'checked' : ''}><span>Express</span><b>+${fmt(SHIPPING_EXPRESS)}</b></label>`;
       sum.innerHTML = `
-        <div><div class="r"><span class="big">SUM TOTAL</span><span class="amt">${fmt(sub)}</span></div><small>All prices is excl. VAT</small></div>
+        <div class="r"><span>Products</span><span>${fmt(sub)}</span></div>
+        ${express ? `<div class="r"><span>Express shipping</span><span>${fmt(shipping)}</span></div>` : ''}
+        <div><div class="r"><span class="big">SUM TOTAL</span><span class="amt">${fmt(net)}</span></div><small>All prices is excl. VAT</small></div>
         <div><div class="r"><span class="big">TOTAL (incl. VAT)</span><span class="amt">${fmt(total)}</span></div>
           <div class="r"><small>VAT amount</small><small>${fmt(vat)}</small></div></div>`;
       place.disabled = !items.length;
     }
+
+    ship.addEventListener('change', e => { express = e.target.value === 'exp'; renderSummary(); });
 
     // + / - change the quantity, the red x removes the line; only the right-hand side is redrawn so typed billing details stay
     lines.addEventListener('click', e => {
@@ -650,7 +684,34 @@ function initCategoryCarousel(root) {
     if (Math.abs(dx) > 50) { swiped = true; go(dx < 0 ? i + 1 : i - 1); }
     startX = null;
   });
+  // first paint: jump straight to the centred slide without animating, then enable transitions
+  root.classList.add('init');
   render();
+  void root.offsetWidth;
+  requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('init')));
+  window.addEventListener('load', render);
+}
+
+/* ---------- Breadcrumbs ---------- */
+function addBreadcrumbs(page) {
+  const esc = t => String(t).replace(/</g, '&lt;');
+  let trail = null;
+  if (page === 'shop') trail = [['Home', 'home.html'], ['Shop']];
+  if (page === 'category') {
+    const c = getCat(params.get('cat'));
+    trail = [['Home', 'home.html'], ['Shop', 'shop.html'], [c ? c.name : 'All categories']];
+  }
+  if (page === 'product') {
+    const p = getProduct(params.get('id')) || PRODUCTS[0], c = getCat(p.cat);
+    trail = [['Home', 'home.html'], ['Shop', 'shop.html'], [c.name, `category.html?cat=${c.slug}`], [p.name]];
+  }
+  if (page === 'checkout') trail = [['Home', 'home.html'], ['Shop', 'shop.html'], ['Checkout']];
+  if (page === 'search') trail = [['Home', 'home.html'], ['Search']];
+  if (!trail) return;
+  const items = trail.map(([label, href], i) => i === trail.length - 1
+    ? `<li aria-current="page">${esc(label)}</li>`
+    : `<li><a href="${href}">${esc(label)}</a></li>`).join('');
+  $('#app').insertAdjacentHTML('afterbegin', `<nav class="crumbs" aria-label="Breadcrumb"><ol>${items}</ol></nav>`);
 }
 
 /* ---------- Boot ---------- */
@@ -659,4 +720,13 @@ document.addEventListener('DOMContentLoaded', () => {
   renderHeader();
   renderFooter();
   pages[page] && pages[page]();
+  addBreadcrumbs(page);
 });
+
+/* keep sticky filters below the sticky header */
+function syncHeaderHeight() {
+  const h = document.querySelector('.site-header');
+  if (h) document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px');
+}
+window.addEventListener('load', syncHeaderHeight);
+window.addEventListener('resize', syncHeaderHeight);
