@@ -8,10 +8,10 @@
    The product list lives in products.js (loaded before this file).
    Categories, their card colour and the home-page favourites are set here. */
 const CATEGORIES = [
-  { slug: 'giveaways',       name: 'Giveaways',                    bg: '#dce5ce', img: 'assets/images/cat-giveaways.jpg' },
-  { slug: 'office-deco',     name: 'Office deco',                  bg: '#dde5ec', img: 'assets/images/cat-office-deco.jpg' },
-  { slug: 'printing',        name: 'On-demand printing materials', bg: '#f1eadc', img: 'assets/images/cat-printing.jpg' },
-  { slug: 'office-supplies', name: 'Office supplies',              bg: '#dcc2c8', img: 'assets/images/cat-office-supplies.jpg' },
+  { slug: 'giveaways',       name: tr('Giveaways', 'Giveaways'),                    bg: '#dce5ce', img: 'assets/images/cat-giveaways.jpg' },
+  { slug: 'office-deco',     name: tr('Office deco', 'Kontorindretning'),                  bg: '#dde5ec', img: 'assets/images/cat-office-deco.jpg' },
+  { slug: 'printing',        name: tr('On-demand printing materials', 'Tryk on demand'), bg: '#f1eadc', img: 'assets/images/cat-printing.jpg' },
+  { slug: 'office-supplies', name: tr('Office supplies', 'Kontorartikler'),              bg: '#dcc2c8', img: 'assets/images/cat-office-supplies.jpg' },
 ];
 
 const GENERIC_DESC = 'A Scan Global Logistics branded item, available to order through the internal shop. Contact Marcom if you need a custom quantity or a different design.';
@@ -38,7 +38,6 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const getCat = slug => CATEGORIES.find(c => c.slug === slug);
 const getProduct = id => PRODUCTS.find(p => p.id === id);
-const fmt = n => (Number.isInteger(n) ? n : n.toFixed(2)) + 'kr';
 const params = new URLSearchParams(location.search);
 
 const ICON = {
@@ -72,6 +71,39 @@ const Cart = {
   subtotal() { return this.lines().reduce((s, l) => s + l.product.price * l.qty, 0); },
 };
 
+/* Toast shown under the cart icon when something is added: confirms it and links straight to checkout */
+let toastTimer;
+function showCartToast(id, qty) {
+  const p = getProduct(id), c = getCat(p.cat);
+  $('.cart-toast')?.remove();
+  const el = document.createElement('div');
+  el.className = 'cart-toast';
+  el.setAttribute('role', 'status');
+  el.innerHTML = `
+    <button class="ct-close" type="button" aria-label="${t('close')}">&times;</button>
+    <div class="ct-head"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>${t('added_to_bag')}</div>
+    <div class="ct-item">
+      <div class="ct-thumb" style="background:${c.bg}"><img src="${p.img}" alt=""></div>
+      <div class="ct-meta"><span class="ct-name">${p.name}</span><span class="ct-qty">${t('qty', { n: qty })} &middot; ${fmt(p.price * qty)}</span></div>
+    </div>
+    <div class="ct-total"><span>${t(Cart.count() === 1 ? 'bag_one' : 'bag_many', { n: Cart.count() })}</span><b>${fmt(Cart.subtotal())}</b></div>
+    <div class="ct-actions">
+      <button class="ct-keep" type="button">${t('keep_shopping_lc')}</button>
+      <a class="btn btn-red" href="checkout.html">${t('go_to_checkout')}</a>
+    </div>`;
+  document.body.appendChild(el);
+  const close = () => { clearTimeout(toastTimer); el.classList.remove('show'); setTimeout(() => el.remove(), 250); };
+  const arm = () => { clearTimeout(toastTimer); toastTimer = setTimeout(close, 5000); };
+  $('.ct-close', el).addEventListener('click', close);
+  $('.ct-keep', el).addEventListener('click', close);
+  el.addEventListener('mouseenter', () => clearTimeout(toastTimer));
+  el.addEventListener('mouseleave', arm);
+  requestAnimationFrame(() => el.classList.add('show'));
+  arm();
+  const badge = $('.cart-badge');
+  if (badge) { badge.classList.remove('bump'); void badge.offsetWidth; badge.classList.add('bump'); }
+}
+
 function updateBadge() {
   const badge = $('.cart-badge');
   if (!badge) return;
@@ -86,19 +118,39 @@ function renderHeader() {
   if (!el) return;
   el.outerHTML = `
     <header class="site-header">
-      <a class="logo" href="home.html"><img src="assets/images/logo.svg" alt="Scan Global Logistics – home"></a>
+      <a class="logo" href="home.html"><img src="assets/images/logo.svg" alt="${t('logo_alt')}"></a>
       <div class="header-right">
         <form class="search" role="search" action="search.html" autocomplete="off">
-          <input type="search" name="q" placeholder="search..." aria-label="Search" value="${(location.pathname.endsWith('search.html') ? params.get('q') || '' : '').replace(/"/g, '&quot;')}">
-          <button type="submit" aria-label="Search">${ICON.search}</button>
+          <input type="search" name="q" placeholder="${t('search_ph')}" aria-label="${t('search')}" value="${(location.pathname.endsWith('search.html') ? params.get('q') || '' : '').replace(/"/g, '&quot;')}">
+          <button type="submit" aria-label="${t('search')}">${ICON.search}</button>
           <div class="suggest" hidden></div>
         </form>
-        <a class="icon-link" href="index.html" aria-label="Account">${ICON.user}</a>
-        <a class="icon-link" href="checkout.html" aria-label="My bag">${ICON.cart}<span class="cart-badge"></span></a>
+        <div class="lang">
+          <button class="lang-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="${t('language')}">
+            <img src="assets/icons/flag-${LANG}.png" alt=""><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <ul class="lang-menu" hidden>
+            <li><button type="button" data-lang="en"${LANG === 'en' ? ' aria-current="true"' : ''}><img src="assets/icons/flag-en.png" alt="">English</button></li>
+            <li><button type="button" data-lang="da"${LANG === 'da' ? ' aria-current="true"' : ''}><img src="assets/icons/flag-da.png" alt="">Dansk (DK)</button></li>
+          </ul>
+        </div>
+        <a class="icon-link" href="index.html" aria-label="${t('account')}">${ICON.user}</a>
+        <a class="icon-link" href="checkout.html" aria-label="${t('my_bag')}">${ICON.cart}<span class="cart-badge"></span></a>
       </div>
     </header>`;
   updateBadge();
   initSearch();
+  initLangMenu();
+}
+
+function initLangMenu() {
+  const box = $('.lang'); if (!box) return;
+  const btn = $('.lang-btn', box), menu = $('.lang-menu', box);
+  const setOpen = o => { menu.hidden = !o; btn.setAttribute('aria-expanded', o); };
+  btn.addEventListener('click', e => { e.stopPropagation(); setOpen(menu.hidden); });
+  $$('[data-lang]', menu).forEach(b => b.addEventListener('click', () => (b.dataset.lang === LANG ? setOpen(false) : setLang(b.dataset.lang))));
+  document.addEventListener('click', e => { if (!box.contains(e.target)) setOpen(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
 }
 
 function renderFooter() {
@@ -152,8 +204,8 @@ function initSearch() {
           const c = getCat(p.cat);
           return `<a href="product.html?id=${p.id}"><span class="s-thumb" style="background:${c.bg}"><img src="${p.img}" alt=""></span>
             <span class="s-text"><strong>${p.name}</strong><small>${c.name}</small></span><span class="s-price">${fmt(p.price)}</span></a>`;
-        }).join('') + (hits.length > 5 ? `<a class="s-all" href="search.html?q=${encodeURIComponent(q)}">See all ${hits.length} results</a>` : '')
-      : '<p class="s-none">No products found</p>';
+        }).join('') + (hits.length > 5 ? `<a class="s-all" href="search.html?q=${encodeURIComponent(q)}">${t('see_all_results', { n: hits.length })}</a>` : '')
+      : `<p class="s-none">${t('no_products_found')}</p>`;
     box.hidden = false;
   };
   input.addEventListener('input', open);
@@ -197,8 +249,8 @@ function initRowCarousel(root) {
 
 function rowCarouselHTML(cards) {
   return `<div class="row-viewport"><div class="row-track">${cards}</div></div>
-    <button class="row-arrow prev" aria-label="Previous">${ICON.left}</button>
-    <button class="row-arrow next" aria-label="Next">${ICON.right}</button>`;
+    <button class="row-arrow prev" aria-label="${t('previous')}">${ICON.left}</button>
+    <button class="row-arrow next" aria-label="${t('next')}">${ICON.right}</button>`;
 }
 
 function lineItemHTML(l, { editable = true } = {}) {
@@ -209,11 +261,11 @@ function lineItemHTML(l, { editable = true } = {}) {
       <a href="product.html?id=${p.id}">${p.name}</a>
       <span class="cat">${c.name}</span>
       ${editable
-        ? `<span class="mini-step"><button data-act="dec" aria-label="Decrease quantity">&minus;</button>${l.qty}<button data-act="inc" aria-label="Increase quantity">+</button></span>`
-        : `<span class="mini-step">Qty ${l.qty}</span>`}
+        ? `<span class="mini-step"><button data-act="dec" aria-label="${t('dec_qty')}">&minus;</button>${l.qty}<button data-act="inc" aria-label="${t('inc_qty')}">+</button></span>`
+        : `<span class="mini-step">${t('qty', { n: l.qty })}</span>`}
     </div>
     <div class="line-price">${fmt(p.price * l.qty)}</div>
-    ${editable ? `<button class="remove" data-act="remove" aria-label="Remove ${p.name}">&times;</button>` : ''}
+    ${editable ? `<button class="remove" data-act="remove" aria-label="${t('remove', { name: p.name })}">&times;</button>` : ''}
   </div>`;
 }
 
@@ -223,40 +275,38 @@ const SORTERS = {
   'recommended': null,
   'price-asc':  (a, b) => a.price - b.price,
   'price-desc': (a, b) => b.price - a.price,
-  'name-asc':   (a, b) => a.name.localeCompare(b.name),
-  'name-desc':  (a, b) => b.name.localeCompare(a.name),
+  'name-asc':   (a, b) => a.name.localeCompare(b.name, LANG),
+  'name-desc':  (a, b) => b.name.localeCompare(a.name, LANG),
 };
 const SORT_GROUP = `
   <details class="f-group" open>
-    <summary>Sort by</summary>
+    <summary>${t('sort_by')}</summary>
     <div class="f-body">
-      <select id="sort" aria-label="Sort by">
-        <option value="recommended">Recommended</option>
-        <option value="price-asc">Price: low to high</option>
-        <option value="price-desc">Price: high to low</option>
-        <option value="name-asc">Name: A to Z</option>
-        <option value="name-desc">Name: Z to A</option>
+      <select id="sort" aria-label="${t('sort_by')}">
+        <option value="recommended">${t('recommended')}</option>
+        <option value="price-asc">${t('price_asc')}</option>
+        <option value="price-desc">${t('price_desc')}</option>
+        <option value="name-asc">${t('name_asc')}</option>
+        <option value="name-desc">${t('name_desc')}</option>
       </select>
     </div>
   </details>`;
 const priceGroup = MAXP => `
   <details class="f-group" open>
-    <summary>Price (DKK)</summary>
+    <summary><span>${t('price_dkk')}<small class="hint">${t('price_per_unit')}</small></span></summary>
     <div class="f-body">
       <div class="range">
         <div class="range-fill"></div>
-        <input type="range" id="p-min" min="0" max="${MAXP}" step="1" value="0" aria-label="Minimum price">
-        <input type="range" id="p-max" min="0" max="${MAXP}" step="1" value="${MAXP}" aria-label="Maximum price">
+        <input type="range" id="p-min" min="0" max="${MAXP}" step="1" value="0" aria-label="${t('min_price')}">
+        <input type="range" id="p-max" min="0" max="${MAXP}" step="1" value="${MAXP}" aria-label="${t('max_price')}">
       </div>
       <div class="price-inputs">
-        <label>From<input type="number" id="p-from" min="0" max="${MAXP}" value="0"></label>
-        <label>To<input type="number" id="p-to" min="0" max="${MAXP}" value="${MAXP}"></label>
+        <label>${t('from')}<input type="number" id="p-from" min="0" max="${MAXP}" value="0"></label>
+        <label>${t('to')}<input type="number" id="p-to" min="0" max="${MAXP}" value="${MAXP}"></label>
       </div>
     </div>
   </details>`;
 const maxPrice = list => Math.ceil(Math.max(...list.map(p => p.price)) / 10) * 10;
-const SUB_LABEL = { 'Event s & fairs': 'Events & fairs', 'Stationary': 'Stationery' };   // tidy folder names
-const subLabel = s => SUB_LABEL[s] || s;
 
 /* Wires up sort + price + reset. `state` must hold sort/min/max; `onReset` clears the page's own filters. */
 function bindFilters(state, MAXP, render, onReset) {
@@ -301,24 +351,24 @@ const pages = {
     const HOME_CATS = ['office-deco', 'giveaways', 'printing', 'office-supplies'].map(getCat);
     $('#app').innerHTML = `
       <section class="hero">
-        <h1>SGL Internal Shop</h1>
-        <p>Everything you need, all in one place</p>
-        <a class="btn btn-red" href="shop.html">Browse products</a>
+        <h1>${t('site_name')}</h1>
+        <p>${t('hero_sub')}</p>
+        <a class="btn btn-red" href="shop.html">${t('browse_products')}</a>
       </section>
       <section class="section">
-        <div class="wrap">${heading('Browse by category:')}</div>
-        <div class="cat-carousel" aria-roledescription="carousel" aria-label="Product categories">
+        <div class="wrap">${heading(t('browse_by_cat'))}</div>
+        <div class="cat-carousel" aria-roledescription="carousel" aria-label="${t('product_categories')}">
           <div class="cat-viewport"><div class="cat-track">
             ${HOME_CATS.map(c => `<a class="cat-slide" href="category.html?cat=${c.slug}"
               style="--bg:${c.bg}; background-image:url('${c.img}'), linear-gradient(135deg,#2a2a2a,#555); background-size:cover; background-position:center;"><span>${c.name}</span></a>`).join('')}
           </div></div>
-          <button class="arrow-btn cat-arrow prev" aria-label="Previous category">${ICON.left}</button>
-          <button class="arrow-btn cat-arrow next" aria-label="Next category">${ICON.right}</button>
-          <div class="dots">${HOME_CATS.map((c, i) => `<button aria-label="Show ${c.name}" data-i="${i}"></button>`).join('')}</div>
+          <button class="arrow-btn cat-arrow prev" aria-label="${t('prev_cat')}">${ICON.left}</button>
+          <button class="arrow-btn cat-arrow next" aria-label="${t('next_cat')}">${ICON.right}</button>
+          <div class="dots">${HOME_CATS.map((c, i) => `<button aria-label="${t('show_cat', { name: c.name })}" data-i="${i}"></button>`).join('')}</div>
         </div>
       </section>
-      <section class="section wrap">
-        ${heading('Se vores favoritter:')}
+      <section class="section wrap home-end">
+        ${heading(t('our_favourites'))}
         <div class="grid-4">${FAVORITES.map(id => card(getProduct(id))).join('')}</div>
       </section>`;
     initCategoryCarousel($('.cat-carousel'));
@@ -332,14 +382,14 @@ const pages = {
 
     $('#app').innerHTML = `
       <div class="shop-layout">
-        <aside class="filters" aria-label="Filters">
+        <aside class="filters" aria-label="${t('filters')}">
           <div class="filters-head">
-            <h2>Filters</h2>
-            <button class="reset" type="button">Reset filters</button>
+            <h2>${t('filters')}</h2>
+            <button class="reset" type="button">${t('reset_filters')}</button>
           </div>
           ${SORT_GROUP}
           <details class="f-group" open>
-            <summary>Categories</summary>
+            <summary>${t('categories')}</summary>
             <div class="f-body">
               ${CATEGORIES.map(c => `<label class="check-row"><input type="checkbox" value="${c.slug}">${c.name}</label>`).join('')}
             </div>
@@ -348,8 +398,8 @@ const pages = {
         </aside>
         <section class="shop-content">
           <div class="shop-head">
-            <h1>Shop</h1>
-            <p class="sub">Browse our products.</p>
+            <h1>${t('shop')}</h1>
+            <p class="sub">${t('browse_our_products')}</p>
             <p class="count" aria-live="polite"></p>
           </div>
           <div id="panels"></div>
@@ -372,13 +422,13 @@ const pages = {
         return `<section class="panel" id="${c.slug}">
           <div class="panel-head">
             <h2 class="panel-title">${c.name}</h2>
-            <a class="see-all" href="category.html?cat=${c.slug}">Se alle produkter <svg viewBox="0 0 24 16" aria-hidden="true"><path d="M0 0h6l8 8-8 8H0l8-8zM10 0h6l8 8-8 8h-6l8-8z"/></svg></a>
+            <a class="see-all" href="category.html?cat=${c.slug}">${t('see_all_products')} <svg viewBox="0 0 24 16" aria-hidden="true"><path d="M0 0h6l8 8-8 8H0l8-8zM10 0h6l8 8-8 8h-6l8-8z"/></svg></a>
           </div>
           ${body}
         </section>`;
       }).join('');
-      panels.innerHTML = html || `<div class="panel panel-empty"><p>No products match your filters.</p><button class="btn btn-red" type="button" data-reset>Reset filters</button></div>`;
-      $('.count').textContent = `${total} product${total === 1 ? '' : 's'}`;
+      panels.innerHTML = html || `<div class="panel panel-empty"><p>${t('no_match_filters')}</p><button class="btn btn-red" type="button" data-reset>${t('reset_filters')}</button></div>`;
+      $('.count').textContent = countOf('product', total);
       $$('.row-carousel', panels).forEach(initRowCarousel);
     }
 
@@ -401,12 +451,12 @@ const pages = {
     const safe = q.replace(/</g, '&lt;');
     $('#app').innerHTML = `
       <div class="wrap all-products">
-        ${heading(q ? `Results for \u201c${safe}\u201d` : 'Search')}
+        ${heading(q ? t('results_for', { q: safe }) : t('search'))}
         ${hits.length
-          ? `<p class="result-count">${hits.length} product${hits.length > 1 ? 's' : ''} found</p><div class="grid-4">${hits.map(card).join('')}</div>`
-          : `<div class="empty">${q ? 'No products match your search.' : 'Type something in the search box.'}<br><a class="btn btn-red" href="shop.html">Browse all products</a></div>`}
+          ? `<p class="result-count">${countOf('found', hits.length)}</p><div class="grid-4">${hits.map(card).join('')}</div>`
+          : `<div class="empty">${q ? t('no_match_search') : t('type_something')}<br><a class="btn btn-red" href="shop.html">${t('browse_all')}</a></div>`}
       </div>`;
-    document.title = `Search – SGL Internal Shop`;
+    document.title = `${t('search')} – ${t('site_name')}`;
   },
 
   /* Category page: all products of one category, with sub-group, sort and price filters */
@@ -419,16 +469,16 @@ const pages = {
     const state = { sort: 'recommended', subs: new Set(), min: 0, max: MAXP };
 
     $('#app').innerHTML = `
-      <section class="hero hero-short"><h1>${cat ? cat.name : 'All categories'}</h1></section>
+      <section class="hero hero-short"><h1>${cat ? cat.name : t('all_categories')}</h1></section>
       <div class="shop-layout">
-        <aside class="filters" aria-label="Filters">
+        <aside class="filters" aria-label="${t('filters')}">
           <div class="filters-head">
-            <h2>Filters</h2>
-            <button class="reset" type="button">Reset filters</button>
+            <h2>${t('filters')}</h2>
+            <button class="reset" type="button">${t('reset_filters')}</button>
           </div>
           ${SORT_GROUP}
           <details class="f-group" open>
-            <summary>Subcategories</summary>
+            <summary>${t('subcategories')}</summary>
             <div class="f-body">
               ${subs.map(sub => `<label class="check-row"><input type="checkbox" value="${sub.replace(/"/g, '&quot;')}">${subLabel(sub)}
                 <span class="n">${base.filter(p => p.sub === sub).length}</span></label>`).join('')}
@@ -438,7 +488,7 @@ const pages = {
         </aside>
         <section class="shop-content">
           <div class="shop-head">
-            <h1>All products</h1>
+            <h1>${t('all_products')}</h1>
             <p class="count" aria-live="polite"></p>
           </div>
           <div id="panels"></div>
@@ -452,8 +502,8 @@ const pages = {
       if (SORTERS[state.sort]) list = [...list].sort(SORTERS[state.sort]);
       panels.innerHTML = list.length
         ? `<section class="panel"><div class="grid-4">${list.map(card).join('')}</div></section>`
-        : `<div class="panel panel-empty"><p>No products match your filters.</p><button class="btn btn-red" type="button" data-reset>Reset filters</button></div>`;
-      $('.count').textContent = `${list.length} product${list.length === 1 ? '' : 's'}`;
+        : `<div class="panel panel-empty"><p>${t('no_match_filters')}</p><button class="btn btn-red" type="button" data-reset>${t('reset_filters')}</button></div>`;
+      $('.count').textContent = countOf('product', list.length);
     }
 
     $$('.check-row input').forEach(cb => cb.addEventListener('change', () => {
@@ -465,7 +515,7 @@ const pages = {
       $$('.check-row input').forEach(cb => (cb.checked = false));
     });
     panels.addEventListener('click', e => { if (e.target.closest('[data-reset]')) reset(); });
-    document.title = `${cat ? cat.name : 'All products'} – SGL Internal Shop`;
+    document.title = `${cat ? cat.name : t('all_products')} – ${t('site_name')}`;
     render();
   },
 
@@ -474,7 +524,7 @@ const pages = {
     const p = getProduct(params.get('id')) || PRODUCTS[0];
     const c = getCat(p.cat);
     // p.imgs can hold extra photos later (e.g. lifestyle shots); until then each product has one image
-    const slides = (p.imgs || [p.img]).map((src, i) => `<img class="main" src="${src}" alt="${p.name}${i ? ' – image ' + (i + 1) : ''}">`);
+    const slides = (p.imgs || [p.img]).map((src, i) => `<img class="main" src="${src}" alt="${p.name}${i ? ' – ' + t('image_n', { n: i + 1 }) : ''}">`);
     const sameSub = PRODUCTS.filter(x => x.id !== p.id && x.sub === p.sub);
     const sameCat = PRODUCTS.filter(x => x.id !== p.id && x.cat === p.cat && x.sub !== p.sub);
     const similarList = [...sameSub, ...sameCat].slice(0, 4).map(x => x.id);
@@ -486,9 +536,9 @@ const pages = {
           <div class="gallery">
             <div class="stage" style="background:${c.bg}"></div>
             <div class="gallery-nav"${slides.length < 2 ? ' hidden' : ''}>
-              <button class="g-prev" aria-label="Previous image">&lsaquo;</button>
+              <button class="g-prev" aria-label="${t('prev_image')}">&lsaquo;</button>
               <span class="g-count"></span>
-              <button class="g-next" aria-label="Next image">&rsaquo;</button>
+              <button class="g-next" aria-label="${t('next_image')}">&rsaquo;</button>
             </div>
           </div>
           <div class="product-info">
@@ -496,21 +546,21 @@ const pages = {
             <div class="price">${fmt(p.price)}</div>
             <div class="buy-row">
               <div class="stepper">
-                <button class="q-dec" aria-label="Decrease quantity">&minus;</button>
+                <button class="q-dec" aria-label="${t('dec_qty')}">&minus;</button>
                 <output class="q-val" aria-live="polite">1</output>
-                <button class="q-inc" aria-label="Increase quantity">+</button>
+                <button class="q-inc" aria-label="${t('inc_qty')}">+</button>
               </div>
-              <button class="btn btn-red add">Add to cart</button>
+              <button class="btn btn-red add">${t('add_to_cart')}</button>
             </div>
-            <div class="desc"><h2>Description</h2><p>${p.desc || SUB_DESC[p.sub] || GENERIC_DESC}</p></div>
+            <div class="desc"><h2>${t('description')}</h2><p>${p.desc || (LANG === 'da' ? SUB_DESC_DA : SUB_DESC)[p.sub] || GENERIC_DESC_T}</p></div>
           </div>
         </section>
         <section class="section" style="padding-top:48px;padding-bottom:88px">
-          ${heading('Se lignende produkter:')}
+          ${heading(t('similar'))}
           <div class="grid-4">${similarList.map(id => card(getProduct(id))).join('')}</div>
         </section>
       </div>`;
-    document.title = `${p.name} – SGL Internal Shop`;
+    document.title = `${p.name} – ${t('site_name')}`;
 
     const stage = $('.stage'), count = $('.g-count');
     const show = i => {
@@ -529,8 +579,9 @@ const pages = {
     const addBtn = $('.add');
     addBtn.addEventListener('click', () => {
       Cart.add(p.id, qty);
-      addBtn.textContent = 'Added \u2713';
-      setTimeout(() => (addBtn.textContent = 'Add to cart'), 1400);
+      showCartToast(p.id, qty);
+      addBtn.textContent = t('added');
+      setTimeout(() => (addBtn.textContent = t('add_to_cart')), 1400);
     });
   },
 
@@ -542,55 +593,123 @@ const pages = {
     $('#app').innerHTML = `
       <div class="wrap checkout-layout">
         <section>
-          <h2 class="col-title">Billing</h2>
+          <h2 class="col-title">${t('billing')}</h2>
+          <div class="purchase-toggle" role="radiogroup" aria-label="${t('purchase_type')}">
+            <label><input type="radio" name="purchase" value="company" checked><span>${t('company_purchase')}</span></label>
+            <label><input type="radio" name="purchase" value="personal"><span>${t('personal_purchase')}</span></label>
+          </div>
           <form class="billing" id="billing" novalidate>
-            <h3 class="form-h">Contact</h3>
+            <fieldset class="mode" id="company-fields">
+            <h3 class="form-h">${t('contact')}</h3>
             <div class="row2">
-              ${field('Contact person', 'contact')}
-              ${field('Email', 'email', true, 'email')}
-              ${field('Phone/Mobile', 'phone', true, 'tel')}
+              ${field(t('contact_person'), 'contact')}
+              ${field(t('email'), 'email', true, 'email')}
+              ${field(t('phone'), 'phone', true, 'tel')}
               <div class="tracking">
-                ${field('Email for tracking', 'tracking', true, 'email')}
-                <button class="add-link" type="button" id="add-tracking">+ Add another tracking email</button>
+                ${field(t('tracking_email'), 'tracking', true, 'email')}
+                <button class="add-link" type="button" id="add-tracking">${t('add_tracking')}</button>
               </div>
             </div>
-            <h3 class="form-h">Invoice</h3>
-            ${field('Initials and ref. for invoice', 'invoice')}
-            <h3 class="form-h">Delivery contact</h3>
+            <h3 class="form-h">${t('invoice')}</h3>
+            ${field(t('invoice_ref'), 'invoice')}
+            <h3 class="form-h">${t('delivery_contact')}</h3>
             <div class="row2">
-              ${field('Delivery company name', 'company')}
-              ${field('Delivery contact', 'dcontact')}
-              ${field('Contact phone for delivery', 'dphone', true, 'tel')}
-              ${field('Contact Email for delivery', 'demail', true, 'email')}
+              ${field(t('delivery_company'), 'company')}
+              ${field(t('delivery_contact'), 'dcontact')}
+              ${field(t('delivery_phone'), 'dphone', true, 'tel')}
+              ${field(t('delivery_email'), 'demail', true, 'email')}
             </div>
-            <h3 class="form-h">Delivery address</h3>
+            <h3 class="form-h">${t('delivery_address')}</h3>
             <div class="row2">
-              ${field('Delivery adress', 'address')}
-              ${field('Adress 2', 'address2', false)}
+              ${field(t('address'), 'address')}
+              ${field(t('address2'), 'address2', false)}
             </div>
             <div class="row3">
-              ${field('Postalcode', 'zip')}${field('Postal place', 'city')}${field('Country', 'country')}
+              ${field(t('postalcode'), 'zip')}${field(t('postal_place'), 'city')}${field(t('country'), 'country')}
             </div>
+            </fieldset>
+            <fieldset class="mode" id="personal-fields" hidden disabled>
+              <h3 class="form-h">${t('your_details')}</h3>
+              <div class="row2">
+                ${field(t('first_name'), 'p_first')}
+                ${field(t('last_name'), 'p_last')}
+                ${field(t('email'), 'p_email', true, 'email')}
+                ${field(t('phone'), 'p_phone', true, 'tel')}
+              </div>
+              <h3 class="form-h">${t('delivery_address')}</h3>
+              <div class="row2">
+                ${field(t('address'), 'p_address')}
+                ${field(t('address2'), 'p_address2', false)}
+              </div>
+              <div class="row3">
+                ${field(t('postalcode'), 'p_zip')}${field(t('postal_place'), 'p_city')}${field(t('country'), 'p_country')}
+              </div>
+              <h3 class="form-h">${t('payment')}</h3>
+              <div class="pay-opts">
+                <label class="opt"><input type="radio" name="pay" value="mobilepay" checked><span>MobilePay</span><img class="pay-logo mobilepay" src="assets/icons/mobilepay.png" alt="Mobilepay"></label>
+                <label class="opt"><input type="radio" name="pay" value="card"><span>${t('card')}</span><span class="logos"><img class="pay-logo dankort" src="assets/icons/dankort.png" alt="Dankort"><img class="pay-logo visa" src="assets/icons/visa.png" alt="Visa"><img class="pay-logo mastercard" src="assets/icons/mastercard.png" alt="Mastercard"></span></label>
+              </div>
+              <div class="pay-panel" id="pay-mobilepay">
+                <div class="mp-phone"><span class="prefix">+45</span><input type="tel" name="mp_phone" placeholder="*${t('mp_phone')}" inputmode="numeric" pattern="[0-9 ]{8,11}" required aria-label="${t('mp_phone')}"></div>
+                <small class="pay-note">${t('mp_note')}</small>
+              </div>
+              <div class="pay-panel" id="pay-card" hidden>
+                <input type="text" name="card_number" required placeholder="*${t('card_number')}" inputmode="numeric" autocomplete="cc-number" pattern="[0-9 ]{13,23}" maxlength="23" aria-label="${t('card_number')}">
+                <div class="row3 card-row">
+                  <input type="text" name="card_exp" required placeholder="*${t('card_exp')}" inputmode="numeric" autocomplete="cc-exp" pattern="(0[1-9]|1[0-2])\/[0-9]{2}" maxlength="5" aria-label="${t('card_exp_label')}">
+                  <input type="text" name="card_cvc" required placeholder="*CVC" inputmode="numeric" autocomplete="cc-csc" pattern="[0-9]{3,4}" maxlength="4" aria-label="CVC">
+                  <input type="text" name="card_name" required placeholder="*${t('card_name')}" autocomplete="cc-name" aria-label="${t('card_name')}">
+                </div>
+                <small class="pay-note">${t('proto_note')}</small>
+              </div>
+            </fieldset>
           </form>
         </section>
         <section class="summary">
-          <h2 class="col-title">Products</h2>
+          <h2 class="col-title">${t('products')}</h2>
           <div id="lines"></div>
-          <h3 class="form-h">Shipping</h3>
+          <h3 class="form-h">${t('shipping')}</h3>
           <div class="ship-opts" id="ship"></div>
           <hr>
           <div class="sum-box" id="sum"></div>
           <div class="order-actions">
-            <a class="btn btn-outline" href="shop.html">Keep Shopping</a>
-            <button class="btn btn-red" type="submit" form="billing" id="place">Place order</button>
+            <a class="btn btn-outline" href="shop.html">${t('keep_shopping')}</a>
+            <button class="btn btn-red" type="submit" form="billing" id="place">${t('place_order')}</button>
           </div>
         </section>
       </div>`;
 
+    // Prototype auto-fill: only the company purchase delivery address is filled in
+    const addr = { address: 'Jernholmen 49', zip: '2650', city: 'Hvidovre', country: tr('Denmark', 'Danmark') };
+    const prefill = addr;   // company purchase only – personal purchase starts empty
+    Object.entries(prefill).forEach(([name, value]) => { const f = $(`#billing [name="${name}"]`); if (f && value) f.value = value; });
+
+    // Company / personal toggle: only the active fieldset is enabled (disabled fields are skipped by validation)
+    const modes = { company: $('#company-fields'), personal: $('#personal-fields') };
+    const payPanels = { mobilepay: $('#pay-mobilepay'), card: $('#pay-card') };
+    function setPayment(method) {
+      Object.entries(payPanels).forEach(([k, el]) => {
+        el.hidden = k !== method;
+        $$('input', el).forEach(i => { i.disabled = k !== method; });
+      });
+    }
+    function setMode(mode) {
+      Object.entries(modes).forEach(([k, el]) => { el.hidden = k !== mode; el.disabled = k !== mode; });
+      $('#place').textContent = mode === 'personal' ? t('pay_place_order') : t('place_order');
+      if (mode === 'personal') setPayment($('input[name="pay"]:checked').value);
+    }
+    $$('input[name="purchase"]').forEach(r => r.addEventListener('change', () => setMode(r.value)));
+    $$('input[name="pay"]').forEach(r => r.addEventListener('change', () => setPayment(r.value)));
+    // card number grouped in fours, expiry gets its slash
+    $('[name="card_number"]').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 19).replace(/(.{4})/g, '$1 ').trim(); });
+    $('[name="card_exp"]').addEventListener('input', e => { let v = e.target.value.replace(/\D/g, '').slice(0, 4); if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2); e.target.value = v; });
+    $('[name="card_cvc"]').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, ''); });
+    setMode('company');
+
     // extra tracking emails (only one is shown until the red link is used)
     $('#add-tracking').addEventListener('click', e => {
       const inp = document.createElement('input');
-      inp.type = 'email'; inp.name = 'tracking'; inp.placeholder = 'Another email for tracking'; inp.setAttribute('aria-label', 'Another email for tracking');
+      inp.type = 'email'; inp.name = 'tracking'; inp.placeholder = t('another_tracking'); inp.setAttribute('aria-label', t('another_tracking'));
       e.currentTarget.before(inp);
       inp.focus();
     });
@@ -605,16 +724,16 @@ const pages = {
       const net = sub + shipping, vat = net * VAT_RATE, total = net + vat;
       lines.innerHTML = items.length
         ? items.map(l => lineItemHTML(l)).join('')
-        : '<div class="empty">Your bag is empty.</div>';
+        : `<div class="empty">${t('bag_empty')}</div>`;
       ship.innerHTML = `
-        <label class="opt"><input type="radio" name="ship" value="std" ${express ? '' : 'checked'}><span>Standard</span><b>Free</b></label>
-        <label class="opt"><input type="radio" name="ship" value="exp" ${express ? 'checked' : ''}><span>Express</span><b>+${fmt(SHIPPING_EXPRESS)}</b></label>`;
+        <label class="opt"><input type="radio" name="ship" value="std" ${express ? '' : 'checked'}><span>${t('standard')}</span><b>${t('free')}</b></label>
+        <label class="opt"><input type="radio" name="ship" value="exp" ${express ? 'checked' : ''}><span>${t('express')}</span><b>+${fmt(SHIPPING_EXPRESS)}</b></label>`;
       sum.innerHTML = `
-        <div class="r"><span>Products</span><span>${fmt(sub)}</span></div>
-        ${express ? `<div class="r"><span>Express shipping</span><span>${fmt(shipping)}</span></div>` : ''}
-        <div><div class="r"><span class="big">SUM TOTAL</span><span class="amt">${fmt(net)}</span></div><small>All prices is excl. VAT</small></div>
-        <div><div class="r"><span class="big">TOTAL (incl. VAT)</span><span class="amt">${fmt(total)}</span></div>
-          <div class="r"><small>VAT amount</small><small>${fmt(vat)}</small></div></div>`;
+        <div class="r"><span>${t('products')}</span><span>${fmt(sub)}</span></div>
+        ${express ? `<div class="r"><span>${t('express_shipping')}</span><span>${fmt(shipping)}</span></div>` : ''}
+        <div><div class="r"><span class="big">${t('sum_total')}</span><span class="amt">${fmt(net)}</span></div><small>${t('excl_vat')}</small></div>
+        <div><div class="r"><span class="big">${t('total_incl')}</span><span class="amt">${fmt(total)}</span></div>
+          <div class="r"><small>${t('vat_amount')}</small><small>${fmt(vat)}</small></div></div>`;
       place.disabled = !items.length;
     }
 
@@ -637,12 +756,13 @@ const pages = {
       const form = e.currentTarget;
       if (!Cart.lines().length) return;
       if (!form.reportValidity()) return;
+      const personal = $('input[name="purchase"]:checked').value === 'personal';
       Cart.clear();
       $('#app').innerHTML = `
         <div class="wrap confirmation">
-          <h1>Thank you for your order</h1>
-          <p>A confirmation has been sent to ${form.elements.email.value.replace(/</g, '&lt;')}.</p>
-          <a class="btn btn-red" href="home.html">Back to shop</a>
+          <h1>${t('thanks')}</h1>
+          <p>${t('confirm_sent', { email: (personal ? form.elements.p_email : form.elements.email).value.replace(/</g, '&lt;') })}</p>
+          <a class="btn btn-red" href="home.html">${t('back_to_shop')}</a>
         </div>`;
       scrollTo({ top: 0 });
     });
@@ -696,29 +816,29 @@ function initCategoryCarousel(root) {
 function addBreadcrumbs(page) {
   const esc = t => String(t).replace(/</g, '&lt;');
   let trail = null;
-  if (page === 'shop') trail = [['Home', 'home.html'], ['Shop']];
+  if (page === 'shop') trail = [[t('home'), 'home.html'], [t('shop')]];
   if (page === 'category') {
     const c = getCat(params.get('cat'));
-    trail = [['Home', 'home.html'], ['Shop', 'shop.html'], [c ? c.name : 'All categories']];
+    trail = [[t('home'), 'home.html'], [t('shop'), 'shop.html'], [c ? c.name : t('all_categories')]];
   }
   if (page === 'product') {
     const p = getProduct(params.get('id')) || PRODUCTS[0], c = getCat(p.cat);
-    trail = [['Home', 'home.html'], ['Shop', 'shop.html'], [c.name, `category.html?cat=${c.slug}`], [p.name]];
+    trail = [[t('home'), 'home.html'], [t('shop'), 'shop.html'], [c.name, `category.html?cat=${c.slug}`], [p.name]];
   }
-  if (page === 'checkout') trail = [['Home', 'home.html'], ['Shop', 'shop.html'], ['Checkout']];
-  if (page === 'search') trail = [['Home', 'home.html'], ['Search']];
+  if (page === 'checkout') trail = [[t('home'), 'home.html'], [t('shop'), 'shop.html'], ['Checkout']];
+  if (page === 'search') trail = [[t('home'), 'home.html'], [t('search')]];
   if (!trail) return;
   const items = trail.map(([label, href], i) => i === trail.length - 1
     ? `<li aria-current="page">${esc(label)}</li>`
     : `<li><a href="${href}">${esc(label)}</a></li>`).join('');
-  $('#app').insertAdjacentHTML('afterbegin', `<nav class="crumbs" aria-label="Breadcrumb"><ol>${items}</ol></nav>`);
+  $('#app').insertAdjacentHTML('afterbegin', `<nav class="crumbs" aria-label="${t('breadcrumb')}"><ol>${items}</ol></nav>`);
 }
 
 /* ---------- Boot ---------- */
 document.addEventListener('DOMContentLoaded', () => {
   const page = document.body.dataset.page;
   renderHeader();
-  renderFooter();
+  // footer removed for now (renderFooter() kept for later)
   pages[page] && pages[page]();
   addBreadcrumbs(page);
 });
