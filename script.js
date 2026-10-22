@@ -219,7 +219,7 @@ function initSearch() {
 function card(p) {
   const c = getCat(p.cat);
   return `<a class="card" href="product.html?id=${p.id}">
-    <div class="card-img" style="background:${c.bg}"><img class="img-main" src="${p.img}" alt="${p.name}" loading="lazy" decoding="async"></div>
+    <div class="card-img" style="background:${c.bg}"><img class="img-main" src="${p.img}" alt="${p.name}" loading="lazy" decoding="async">${p.hover ? `<img class="img-hover" src="${p.hover}" alt="" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0" onerror="this.remove()">` : ''}</div>
     <div class="card-body"><strong class="price">${fmt(p.price)}</strong><span class="name">${p.name}</span><span class="cat">${c.name}</span></div>
   </a>`;
 }
@@ -524,7 +524,7 @@ const pages = {
     const p = getProduct(params.get('id')) || PRODUCTS[0];
     const c = getCat(p.cat);
     // p.imgs can hold extra photos later (e.g. lifestyle shots); until then each product has one image
-    const slides = (p.imgs || [p.img]).map((src, i) => `<img class="main" src="${src}" alt="${p.name}${i ? ' – ' + t('image_n', { n: i + 1 }) : ''}">`);
+    const slides = (p.imgs || [p.img].concat(p.hover ? [p.hover] : [])).map((src, i) => `<img class="main${src === p.hover ? ' full' : ''}" src="${src}" alt="${p.name}${i ? ' – ' + t('image_n', { n: i + 1 }) : ''}">`);
     const sameSub = PRODUCTS.filter(x => x.id !== p.id && x.sub === p.sub);
     const sameCat = PRODUCTS.filter(x => x.id !== p.id && x.cat === p.cat && x.sub !== p.sub);
     const similarList = [...sameSub, ...sameCat].slice(0, 4).map(x => x.id);
