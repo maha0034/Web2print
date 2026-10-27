@@ -514,3 +514,25 @@ fieldset.mode[hidden] { display: none; }
   .search input { width: 2.5rem; }
   .lang-btn { padding: 4px 2px; gap: 3px; }
 }
+
+/* account popover (hover / keyboard focus) */
+.account { position: relative; display: grid; place-items: center; }
+.account-pop { position: absolute; top: calc(100% + 10px); right: -8px; z-index: 60; min-width: 13rem; padding: 12px 14px; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.18); font-size: 0.875rem; line-height: 1.5; white-space: nowrap; opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity .18s ease, transform .18s ease, visibility .18s; }
+.account-pop::before { content: ""; position: absolute; top: -6px; right: 16px; width: 10px; height: 10px; background: #fff; border-left: 1px solid var(--line); border-top: 1px solid var(--line); transform: rotate(45deg); }
+.account-pop p { margin: 0; }
+.account-pop p + p { margin-top: 4px; }
+.account-pop span { font-weight: 700; margin-right: 4px; }
+.account::after { content: ""; position: absolute; top: 100%; left: 0; right: 0; height: 12px; }
+.account:hover .account-pop, .account:focus-within .account-pop { opacity: 1; visibility: visible; transform: none; }
+
+/* ===== Home hero: automatic slider (no controls) ===== */
+.hero.hero-slider { position: relative; padding: 0; display: block; aspect-ratio: 3 / 1; min-height: 300px; background: #e8e4de; }
+.hero-slide { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 40px clamp(24px, 5vw, 72px);
+  color: #111; background: var(--img) center right / cover no-repeat;
+  opacity: 0; visibility: hidden; transition: opacity .9s ease, visibility .9s; }
+.hero-slide.active { opacity: 1; visibility: visible; z-index: 1; }
+.hero-slide h1, .hero-slide h2 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 500; margin: 0; }
+.hero-slide p { font-size: 0.9375rem; font-weight: 500; margin: 0; }
+.hero-slide .btn { align-self: flex-start; margin-top: 22px; padding: 9px 22px; font-size: 0.8125rem; }
+@media (max-width: 560px) { .hero.hero-slider { aspect-ratio: auto; min-height: 280px; } .hero-slide { background: linear-gradient(90deg, rgba(255,255,255,.7), rgba(255,255,255,.25)), var(--img) 80% center / cover no-repeat; } }
+@media (prefers-reduced-motion: reduce) { .hero-slide { transition: none; } }

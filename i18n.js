@@ -16,7 +16,7 @@ const tr = (en, da) => (LANG === 'da' ? da : en);
 
 const STR = {
   // header
-  search_ph: ['search...', 'søg...'], search: ['Search', 'Søg'], account: ['Account', 'Konto'], my_bag: ['My bag', 'Min kurv'],
+  search_ph: ['search...', 'søg...'], search: ['Search', 'Søg'], account: ['Account', 'Konto'], acc_user: ['User:', 'Bruger:'], acc_address: ['Address:', 'Adresse:'], my_bag: ['My bag', 'Min kurv'],
   language: ['Language', 'Sprog'], logo_alt: ['Scan Global Logistics – home', 'Scan Global Logistics – forside'],
   see_all_results: ['See all {n} results', 'Se alle {n} resultater'], no_products_found: ['No products found', 'Ingen produkter fundet'],
   // toast

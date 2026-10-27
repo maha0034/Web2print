@@ -208,3 +208,13 @@ const PRODUCTS = [
   { id: 'government-defence-flyer', name: 'Government & defence flyer', price: 6, cat: 'printing', sub: 'Vertical Flyers', img: 'assets/products/government-defence-flyer.webp', hover: 'assets/hover/government-defence-flyer.webp', keywords: 'brochure' },
   { id: 'renewable-energy-flyer', name: 'Renewable energy flyer', price: 6, cat: 'printing', sub: 'Vertical Flyers', img: 'assets/products/renewable-energy-flyer.webp', hover: 'assets/hover/renewable-energy-flyer.webp', keywords: 'brochure' },
 ];
+
+/* ==========================================================
+   Collections shown from the home-page hero (category.html?collection=…)
+   Edit the id lists to change what each collection contains.
+   ========================================================== */
+const COLLECTIONS = {
+  latest:     ['callaway-chrome-soft-golf-balls', 'callaway-supersoft-golf-balls', 'golf-towel-olive', 'golf-tees-100-pack', 'luggage-strap', 'ice-scraper', 'sports-bag-black', 'cooler-bag-red', 'leather-luggage-tag', 'waterproof-phone-pouch', 'clear-toiletry-bag', 'hoodie-grey'],
+  outlet:     ['chocolate-experience-tube'],
+  favourites: ['cotton-tote-bag', 'hoodie-grey', 'thermo-cup', 'golf-towel-olive', 'adidas-polo-shirt-black', 'adidas-polo-shirt-navy', 'logo-pin', 'hand-sanitizer-card']
+};

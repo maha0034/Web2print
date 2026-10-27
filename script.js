@@ -134,7 +134,13 @@ function renderHeader() {
             <li><button type="button" data-lang="da"${LANG === 'da' ? ' aria-current="true"' : ''}><img src="assets/icons/flag-da.png" alt="">Dansk (DK)</button></li>
           </ul>
         </div>
-        <a class="icon-link" href="index.html" aria-label="${t('account')}">${ICON.user}</a>
+        <div class="account">
+          <a class="icon-link" href="index.html" aria-label="${t('account')}" aria-describedby="account-pop">${ICON.user}</a>
+          <div class="account-pop" id="account-pop" role="tooltip">
+            <p><span>${t('acc_user')}</span> sglhvidovre</p>
+            <p><span>${t('acc_address')}</span> Jernholmen 49</p>
+          </div>
+        </div>
         <a class="icon-link" href="checkout.html" aria-label="${t('my_bag')}">${ICON.cart}<span class="cart-badge"></span></a>
       </div>
     </header>`;
@@ -222,6 +228,30 @@ function card(p) {
     <div class="card-img" style="background:${c.bg}"><img class="img-main" src="${p.img}" alt="${p.name}" loading="lazy" decoding="async">${p.hover ? `<img class="img-hover" src="${p.hover}" alt="" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0" onerror="this.remove()">` : ''}</div>
     <div class="card-body"><strong class="price">${fmt(p.price)}</strong><span class="name">${p.name}</span><span class="cat">${c.name}</span></div>
   </a>`;
+}
+/* Home hero: four slides that change by themselves every 10 s (no controls) */
+function collectionInfo(key) {
+  const ids = COLLECTIONS[key]; if (!ids) return null;
+  const title = heroSlides().find(sl => sl.href.endsWith('=' + key)).title;
+  return { title, items: ids.map(getProduct).filter(Boolean) };
+}
+function heroSlides() {
+  return [
+    { title: t('site_name'), sub: t('hero_sub'), href: 'shop.html' },
+    { title: tr('Latest added items', 'Senest tilføjede varer'), sub: tr('Fresh additions for your everyday needs.', 'Nyheder til din hverdag.'), href: 'category.html?collection=latest' },
+    { title: tr('Outlet', 'Outlet'), sub: tr('Shop the last items before they’re gone.', 'Køb de sidste varer, før de er væk.'), href: 'category.html?collection=outlet' },
+    { title: tr('Our favourites', 'Vores favoritter'), sub: tr('Explore a selection of our favourite products.', 'Udforsk et udvalg af vores favoritprodukter.'), href: 'category.html?collection=favourites' }
+  ];
+}
+function initHeroSlider() {
+  const slides = $$('.hero-slide'); if (slides.length < 2) return;
+  slides.forEach((_, i) => { new Image().src = `assets/images/hero-${i + 1}.jpg`; });
+  let i = 0;
+  setInterval(() => {
+    slides[i].classList.remove('active'); slides[i].inert = true; slides[i].setAttribute('aria-hidden', 'true');
+    i = (i + 1) % slides.length;
+    slides[i].classList.add('active'); slides[i].inert = false; slides[i].removeAttribute('aria-hidden');
+  }, 10000);
 }
 const heading = text => `<h2 class="heading">${text}</h2>`;
 
@@ -350,10 +380,12 @@ const pages = {
     // carousel order: Office deco on the far left, Giveaways in the centre (start slide)
     const HOME_CATS = ['office-deco', 'giveaways', 'printing', 'office-supplies'].map(getCat);
     $('#app').innerHTML = `
-      <section class="hero">
-        <h1>${t('site_name')}</h1>
-        <p>${t('hero_sub')}</p>
-        <a class="btn btn-red" href="shop.html">${t('browse_products')}</a>
+      <section class="hero hero-slider" aria-roledescription="carousel" aria-label="${t('site_name')}">
+        ${heroSlides().map((sl, i) => `<div class="hero-slide${i ? '' : ' active'}" style="--img:url('assets/images/hero-${i + 1}.jpg')"${i ? ' inert aria-hidden="true"' : ''}>
+          ${i ? `<h2>${sl.title}</h2>` : `<h1>${sl.title}</h1>`}
+          <p>${sl.sub}</p>
+          <a class="btn btn-red" href="${sl.href}">${t('browse_products')}</a>
+        </div>`).join('')}
       </section>
       <section class="section">
         <div class="wrap">${heading(t('browse_by_cat'))}</div>
@@ -371,6 +403,7 @@ const pages = {
         ${heading(t('our_favourites'))}
         <div class="grid-4">${FAVORITES.map(id => card(getProduct(id))).join('')}</div>
       </section>`;
+    initHeroSlider();
     initCategoryCarousel($('.cat-carousel'));
   },
 
@@ -462,14 +495,16 @@ const pages = {
   /* Category page: all products of one category, with sub-group, sort and price filters */
   category() {
     document.body.classList.add('shop-page');
-    const cat = getCat(params.get('cat'));
-    const base = cat ? PRODUCTS.filter(p => p.cat === cat.slug) : PRODUCTS;
+    const coll = collectionInfo(params.get('collection'));
+    const cat = coll ? null : getCat(params.get('cat'));
+    const base = coll ? coll.items : cat ? PRODUCTS.filter(p => p.cat === cat.slug) : PRODUCTS;
+    const pageTitle = coll ? coll.title : cat ? cat.name : t('all_categories');
     const subs = [...new Set(base.map(p => p.sub))];                 // sub-groups, in the order of products.js
     const MAXP = maxPrice(base);
     const state = { sort: 'recommended', subs: new Set(), min: 0, max: MAXP };
 
     $('#app').innerHTML = `
-      <section class="hero hero-short"><h1>${cat ? cat.name : t('all_categories')}</h1></section>
+      <section class="hero hero-short"><h1>${pageTitle}</h1></section>
       <div class="shop-layout">
         <aside class="filters" aria-label="${t('filters')}">
           <div class="filters-head">
@@ -515,7 +550,7 @@ const pages = {
       $$('.check-row input').forEach(cb => (cb.checked = false));
     });
     panels.addEventListener('click', e => { if (e.target.closest('[data-reset]')) reset(); });
-    document.title = `${cat ? cat.name : t('all_products')} – ${t('site_name')}`;
+    document.title = `${coll || cat ? pageTitle : t('all_products')} – ${t('site_name')}`;
     render();
   },
 
@@ -819,7 +854,8 @@ function addBreadcrumbs(page) {
   if (page === 'shop') trail = [[t('home'), 'home.html'], [t('shop')]];
   if (page === 'category') {
     const c = getCat(params.get('cat'));
-    trail = [[t('home'), 'home.html'], [t('shop'), 'shop.html'], [c ? c.name : t('all_categories')]];
+    const co = collectionInfo(params.get('collection'));
+    trail = co ? [[t('home'), 'home.html'], [co.title]] : [[t('home'), 'home.html'], [t('shop'), 'shop.html'], [c ? c.name : t('all_categories')]];
   }
   if (page === 'product') {
     const p = getProduct(params.get('id')) || PRODUCTS[0], c = getCat(p.cat);
