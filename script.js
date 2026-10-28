@@ -110,6 +110,8 @@ function updateBadge() {
   const n = Cart.count();
   badge.textContent = n;
   badge.classList.toggle('show', n > 0);
+  const mc = $('.m-count'); if (mc) { mc.textContent = n ? `(${n})` : ''; }
+  const bg = $('.burger'); if (bg) bg.classList.toggle('has-items', n > 0);
 }
 
 /* ---------- Shared layout ---------- */
@@ -151,9 +153,14 @@ function renderHeader() {
         </form>
         <ul class="m-links">
           <li><a href="home.html">${t('home')}</a></li>
-          <li><a href="shop.html">${t('shop')}</a></li>
-          ${CATEGORIES.map(c => `<li class="sub"><a href="category.html?cat=${c.slug}">${c.name}</a></li>`).join('')}
-          <li><a href="checkout.html">${t('my_bag')}</a></li>
+          <li class="has-sub">
+            <button class="m-toggle" type="button" aria-expanded="false" aria-controls="m-sub">${t('shop')}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+            <ul class="m-sub" id="m-sub" hidden>
+              <li><a href="shop.html">${t('all_categories')}</a></li>
+              ${CATEGORIES.map(c => `<li><a href="category.html?cat=${c.slug}">${c.name}</a></li>`).join('')}
+            </ul>
+          </li>
+          <li><a href="checkout.html">${t('my_bag')} <span class="m-count"></span></a></li>
         </ul>
         <div class="m-lang" role="group" aria-label="${t('language')}">
           <button type="button" data-lang="en"${LANG === 'en' ? ' aria-current="true"' : ''}><img src="assets/icons/flag-en.png" alt="">English</button>
@@ -963,6 +970,8 @@ function initMobileMenu() {
   const btn = $('.burger'), menu = $('.mobile-menu'); if (!btn || !menu) return;
   const set = open => { menu.hidden = !open; btn.setAttribute('aria-expanded', String(open)); document.body.classList.toggle('menu-open', open); };
   btn.addEventListener('click', () => set(menu.hidden));
+  const tg = $('.m-toggle', menu), sub = $('.m-sub', menu);
+  tg.addEventListener('click', () => { const open = sub.hidden; sub.hidden = !open; tg.setAttribute('aria-expanded', String(open)); });
   $$('[data-lang]', menu).forEach(b => b.addEventListener('click', () => (b.dataset.lang === LANG ? set(false) : setLang(b.dataset.lang))));
   $$('a', menu).forEach(a => a.addEventListener('click', () => set(false)));
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) { set(false); btn.focus(); } });
