@@ -142,11 +142,33 @@ function renderHeader() {
           </div>
         </div>
         <a class="icon-link" href="checkout.html" aria-label="${t('my_bag')}">${ICON.cart}<span class="cart-badge"></span></a>
+        <button class="burger" type="button" aria-label="${tr('Menu', 'Menu')}" aria-expanded="false" aria-controls="mobile-menu"><span></span><span></span><span></span></button>
       </div>
+      <nav class="mobile-menu" id="mobile-menu" aria-label="${tr('Menu', 'Menu')}" hidden>
+        <form class="m-search" role="search" action="search.html" autocomplete="off">
+          <input type="search" name="q" placeholder="${t('search_ph')}" aria-label="${t('search')}">
+          <button type="submit" aria-label="${t('search')}">${ICON.search}</button>
+        </form>
+        <ul class="m-links">
+          <li><a href="home.html">${t('home')}</a></li>
+          <li><a href="shop.html">${t('shop')}</a></li>
+          ${CATEGORIES.map(c => `<li class="sub"><a href="category.html?cat=${c.slug}">${c.name}</a></li>`).join('')}
+          <li><a href="checkout.html">${t('my_bag')}</a></li>
+        </ul>
+        <div class="m-lang" role="group" aria-label="${t('language')}">
+          <button type="button" data-lang="en"${LANG === 'en' ? ' aria-current="true"' : ''}><img src="assets/icons/flag-en.png" alt="">English</button>
+          <button type="button" data-lang="da"${LANG === 'da' ? ' aria-current="true"' : ''}><img src="assets/icons/flag-da.png" alt="">Dansk (DK)</button>
+        </div>
+        <div class="m-account">
+          ${ICON.user}
+          <div><p><span>${t('acc_user')}</span> sglhvidovre</p><p><span>${t('acc_address')}</span> Jernholmen 49</p></div>
+        </div>
+      </nav>
     </header>`;
   updateBadge();
   initSearch();
   initLangMenu();
+  initMobileMenu();
 }
 
 function initLangMenu() {
@@ -890,7 +912,7 @@ window.addEventListener('resize', syncHeaderHeight);
 
 /* ---------- Technical support: round button bottom-right + popover form (prototype, nothing is sent) ---------- */
 function initSupport() {
-  const NUT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l8.2 4.75v9.5L12 21.5l-8.2-4.75v-9.5z"/><circle cx="12" cy="12" r="3.6"/></svg>';
+  const NUT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>';
   const wrap = document.createElement('div');
   wrap.className = 'support';
   wrap.innerHTML = `
@@ -934,4 +956,15 @@ function initSupport() {
     if (bad.length) return bad[0].focus();
     form.hidden = true; done.hidden = false;
   });
+}
+
+/* Burger menu for narrow screens */
+function initMobileMenu() {
+  const btn = $('.burger'), menu = $('.mobile-menu'); if (!btn || !menu) return;
+  const set = open => { menu.hidden = !open; btn.setAttribute('aria-expanded', String(open)); document.body.classList.toggle('menu-open', open); };
+  btn.addEventListener('click', () => set(menu.hidden));
+  $$('[data-lang]', menu).forEach(b => b.addEventListener('click', () => (b.dataset.lang === LANG ? set(false) : setLang(b.dataset.lang))));
+  $$('a', menu).forEach(a => a.addEventListener('click', () => set(false)));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) { set(false); btn.focus(); } });
+  window.matchMedia('(min-width: 761px)').addEventListener('change', e => { if (e.matches) set(false); });
 }
