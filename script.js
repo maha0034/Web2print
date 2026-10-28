@@ -877,6 +877,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // footer removed for now (renderFooter() kept for later)
   pages[page] && pages[page]();
   addBreadcrumbs(page);
+  if (page !== 'login') initSupport();
 });
 
 /* keep sticky filters below the sticky header */
@@ -886,3 +887,51 @@ function syncHeaderHeight() {
 }
 window.addEventListener('load', syncHeaderHeight);
 window.addEventListener('resize', syncHeaderHeight);
+
+/* ---------- Technical support: round button bottom-right + popover form (prototype, nothing is sent) ---------- */
+function initSupport() {
+  const NUT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l8.2 4.75v9.5L12 21.5l-8.2-4.75v-9.5z"/><circle cx="12" cy="12" r="3.6"/></svg>';
+  const wrap = document.createElement('div');
+  wrap.className = 'support';
+  wrap.innerHTML = `
+    <section class="support-panel" id="support-panel" role="dialog" aria-modal="false" aria-labelledby="support-title" hidden>
+      <header class="support-head">
+        <div><h2 id="support-title">${tr('Technical support', 'Teknisk support')}</h2><p>8:00–16:00 CET</p></div>
+        <button class="support-x" type="button" aria-label="${tr('Close', 'Luk')}">&times;</button>
+      </header>
+      <form class="support-form" novalidate>
+        <label>${tr('Your name', 'Dit navn')}<input name="name" type="text" placeholder="${tr('Your name', 'Dit navn')}" autocomplete="off" required></label>
+        <label>${tr('Your e-mail', 'Din e-mail')}<input name="email" type="email" placeholder="${tr('Your e-mail', 'Din e-mail')}" autocomplete="off" required></label>
+        <label>${tr('Your subject', 'Dit emne')}<input name="subject" type="text" placeholder="${tr('Your subject', 'Dit emne')}" autocomplete="off" required></label>
+        <label>${tr('Your message', 'Din besked')}<textarea name="message" rows="4" placeholder="${tr('Your message', 'Din besked')}" required></textarea></label>
+        <div class="support-actions">
+          <button class="btn btn-red" type="submit">${tr('Send', 'Send')}</button>
+          <button class="support-cancel" type="button">${tr('Cancel', 'Annuller')}</button>
+        </div>
+      </form>
+      <div class="support-done" hidden>
+        <strong>${tr('Thank you!', 'Tak!')}</strong>
+        <p>${tr('Your message has been sent to technical support.', 'Din besked er sendt til teknisk support.')}</p>
+        <button class="btn btn-red" type="button">${tr('Close', 'Luk')}</button>
+      </div>
+    </section>
+    <button class="support-fab" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="support-panel" aria-label="${tr('Technical support', 'Teknisk support')}" title="${tr('Technical support', 'Teknisk support')}">${NUT}</button>`;
+  document.body.appendChild(wrap);
+  const panel = $('.support-panel', wrap), fab = $('.support-fab', wrap), form = $('.support-form', wrap), done = $('.support-done', wrap);
+  const setOpen = open => {
+    panel.hidden = !open; fab.setAttribute('aria-expanded', String(open)); wrap.classList.toggle('open', open);
+    if (open) { form.hidden = false; done.hidden = true; $('input', form).focus(); } else fab.focus({ preventScroll: true });
+  };
+  fab.addEventListener('click', () => setOpen(panel.hidden));
+  $('.support-x', wrap).addEventListener('click', () => setOpen(false));
+  $('.support-cancel', wrap).addEventListener('click', () => { form.reset(); setOpen(false); });
+  $('button', done).addEventListener('click', () => { form.reset(); setOpen(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !panel.hidden) setOpen(false); });
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const bad = $$('[required]', form).filter(f => !f.value.trim() || (f.type === 'email' && !/^\S+@\S+\.\S+$/.test(f.value)));
+    $$('[required]', form).forEach(f => f.classList.toggle('invalid', bad.includes(f)));
+    if (bad.length) return bad[0].focus();
+    form.hidden = true; done.hidden = false;
+  });
+}
