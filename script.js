@@ -251,7 +251,7 @@ function initHeroSlider() {
     slides[i].classList.remove('active'); slides[i].inert = true; slides[i].setAttribute('aria-hidden', 'true');
     i = (i + 1) % slides.length;
     slides[i].classList.add('active'); slides[i].inert = false; slides[i].removeAttribute('aria-hidden');
-  }, 10000);
+  }, 5000);
 }
 const heading = text => `<h2 class="heading">${text}</h2>`;
 
