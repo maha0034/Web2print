@@ -137,10 +137,11 @@ function renderHeader() {
           </ul>
         </div>
         <div class="account">
-          <a class="icon-link" href="index.html" aria-label="${t('account')}" aria-describedby="account-pop">${ICON.user}</a>
-          <div class="account-pop" id="account-pop" role="tooltip">
+          <button class="icon-link account-btn" type="button" aria-label="${t('account')}" aria-haspopup="true" aria-expanded="false" aria-controls="account-pop">${ICON.user}</button>
+          <div class="account-pop" id="account-pop">
             <p><span>${t('acc_user')}</span> sglhvidovre</p>
             <p><span>${t('acc_address')}</span> Jernholmen 49</p>
+            <a class="logout-btn" href="index.html">${tr('Log out', 'Log ud')}</a>
           </div>
         </div>
         <a class="icon-link" href="checkout.html" aria-label="${t('my_bag')}">${ICON.cart}<span class="cart-badge"></span></a>
@@ -170,12 +171,14 @@ function renderHeader() {
           ${ICON.user}
           <div><p><span>${t('acc_user')}</span> sglhvidovre</p><p><span>${t('acc_address')}</span> Jernholmen 49</p></div>
         </div>
+        <a class="logout-btn m-logout" href="index.html">${tr('Log out', 'Log ud')}</a>
       </nav>
     </header>`;
   updateBadge();
   initSearch();
   initLangMenu();
   initMobileMenu();
+  initAccountMenu();
 }
 
 function initLangMenu() {
@@ -259,22 +262,27 @@ function card(p) {
   </a>`;
 }
 /* Home hero: four slides that change by themselves every 10 s (no controls) */
+const COLLECTION_TITLES = {
+  latest: () => tr('Fresh arrivals', 'Nyankomne'),
+  outlet: () => 'Outlet',
+  favourites: () => tr('Most popular', 'Mest populære')
+};
 function collectionInfo(key) {
   const ids = COLLECTIONS[key]; if (!ids) return null;
-  const title = heroSlides().find(sl => sl.href.endsWith('=' + key)).title;
-  return { title, items: ids.map(getProduct).filter(Boolean) };
+  return { title: COLLECTION_TITLES[key](), items: ids.map(getProduct).filter(Boolean) };
 }
+/* Home hero: slides that change by themselves (no controls); the first one is what visitors see on arrival.
+   img = file in assets/images */
 function heroSlides() {
   return [
-    { title: t('site_name'), sub: t('hero_sub'), href: 'shop.html' },
-    { title: tr('Latest added items', 'Senest tilføjede varer'), sub: tr('Fresh additions for your everyday needs.', 'Nyheder til din hverdag.'), href: 'category.html?collection=latest' },
-    { title: tr('Outlet', 'Outlet'), sub: tr('Shop the last items before they’re gone.', 'Køb de sidste varer, før de er væk.'), href: 'category.html?collection=outlet' },
-    { title: tr('Our favourites', 'Vores favoritter'), sub: tr('Explore a selection of our favourite products.', 'Udforsk et udvalg af vores favoritprodukter.'), href: 'category.html?collection=favourites' }
+    { img: 'hero-4.jpg', title: COLLECTION_TITLES.favourites(), sub: tr('Explore a selection of our favourite products.', 'Udforsk et udvalg af vores favoritprodukter.'), cta: tr('Shop bestsellers', 'Køb bestsellere'), href: 'category.html?collection=favourites' },
+    { img: 'hero-2.jpg', title: COLLECTION_TITLES.latest(), sub: tr('Fresh additions for your everyday needs.', 'Nyheder til din hverdag.'), cta: tr('See what’s new', 'Se hvad der er nyt'), href: 'category.html?collection=latest' },
+    { img: 'hero-3.jpg', title: COLLECTION_TITLES.outlet(), sub: tr('Shop the last items before they’re gone.', 'Køb de sidste varer, før de er væk.'), cta: tr('Discover great deals', 'Opdag gode tilbud'), href: 'category.html?collection=outlet' }
   ];
 }
 function initHeroSlider() {
   const slides = $$('.hero-slide'); if (slides.length < 2) return;
-  slides.forEach((_, i) => { new Image().src = `assets/images/hero-${i + 1}.jpg`; });
+  heroSlides().forEach(sl => { new Image().src = `assets/images/${sl.img}`; });
   let i = 0;
   setInterval(() => {
     slides[i].classList.remove('active'); slides[i].inert = true; slides[i].setAttribute('aria-hidden', 'true');
@@ -410,11 +418,21 @@ const pages = {
     const HOME_CATS = ['office-deco', 'giveaways', 'printing', 'office-supplies'].map(getCat);
     $('#app').innerHTML = `
       <section class="hero hero-slider" aria-roledescription="carousel" aria-label="${t('site_name')}">
-        ${heroSlides().map((sl, i) => `<div class="hero-slide${i ? '' : ' active'}" style="--img:url('assets/images/hero-${i + 1}.jpg')"${i ? ' inert aria-hidden="true"' : ''}>
+        ${heroSlides().map((sl, i) => `<div class="hero-slide${i ? '' : ' active'}" style="--img:url('assets/images/${sl.img}')"${i ? ' inert aria-hidden="true"' : ''}>
           ${i ? `<h2>${sl.title}</h2>` : `<h1>${sl.title}</h1>`}
           <p>${sl.sub}</p>
-          <a class="btn btn-red" href="${sl.href}">${t('browse_products')}</a>
+          <a class="btn btn-red" href="${sl.href}">${sl.cta}</a>
         </div>`).join('')}
+      </section>
+      <section class="browse-band" aria-label="${t('browse_products')}">
+        <div class="wrap browse-band-in">
+          <div class="bb-text">
+            <h2>${tr('Looking for something specific?', 'Leder du efter noget bestemt?')}</h2>
+            <p>${tr('Explore our full range of products.', 'Udforsk hele vores udvalg af produkter.')}</p>
+          </div>
+          <svg class="bb-arrows" viewBox="716 106 497 359" aria-hidden="true"><path d="M721.4 111.3L807.1 285.5 721.4 459.8H881.2L966.9 285.5 881.2 111.3zM961.6 111.3L1047.3 285.5 961.6 459.8H1121.4L1207.1 285.5 1121.4 111.3z"/></svg>
+          <a class="btn btn-red" href="shop.html">${t('browse_products')}</a>
+        </div>
       </section>
       <section class="section">
         <div class="wrap">${heading(t('browse_by_cat'))}</div>
@@ -428,10 +446,7 @@ const pages = {
           <div class="dots">${HOME_CATS.map((c, i) => `<button aria-label="${t('show_cat', { name: c.name })}" data-i="${i}"></button>`).join('')}</div>
         </div>
       </section>
-      <section class="section wrap home-end">
-        ${heading(t('our_favourites'))}
-        <div class="grid-4">${FAVORITES.map(id => card(getProduct(id))).join('')}</div>
-      </section>`;
+`;
     initHeroSlider();
     initCategoryCarousel($('.cat-carousel'));
   },
@@ -533,7 +548,6 @@ const pages = {
     const state = { sort: 'recommended', subs: new Set(), min: 0, max: MAXP };
 
     $('#app').innerHTML = `
-      <section class="hero hero-short"><h1>${pageTitle}</h1></section>
       <div class="shop-layout">
         <aside class="filters" aria-label="${t('filters')}">
           <div class="filters-head">
@@ -552,7 +566,7 @@ const pages = {
         </aside>
         <section class="shop-content">
           <div class="shop-head">
-            <h1>${t('all_products')}</h1>
+            <h1>${coll || cat ? pageTitle : t('all_products')}</h1>
             <p class="count" aria-live="polite"></p>
           </div>
           <div id="panels"></div>
@@ -774,7 +788,14 @@ const pages = {
     $('#add-tracking').addEventListener('click', e => {
       const inp = document.createElement('input');
       inp.type = 'email'; inp.name = 'tracking'; inp.placeholder = t('another_tracking'); inp.setAttribute('aria-label', t('another_tracking'));
-      e.currentTarget.before(inp);
+      const row = document.createElement('div');
+      row.className = 'track-row';
+      const rm = document.createElement('button');
+      rm.type = 'button'; rm.className = 'track-remove'; rm.textContent = '\u00d7';
+      rm.setAttribute('aria-label', tr('Remove email', 'Fjern e-mail'));
+      rm.addEventListener('click', () => { row.remove(); $('#add-tracking').focus(); });
+      row.append(inp, rm);
+      e.currentTarget.before(row);
       inp.focus();
     });
 
@@ -976,4 +997,13 @@ function initMobileMenu() {
   $$('a', menu).forEach(a => a.addEventListener('click', () => set(false)));
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) { set(false); btn.focus(); } });
   window.matchMedia('(min-width: 761px)').addEventListener('change', e => { if (e.matches) set(false); });
+}
+
+/* User popover: opens on hover (desktop) or tap/click; the only way back to the login page is "Log out" */
+function initAccountMenu() {
+  const box = $('.account'), btn = $('.account-btn'); if (!box || !btn) return;
+  const set = open => { box.classList.toggle('open', open); btn.setAttribute('aria-expanded', String(open)); };
+  btn.addEventListener('click', () => set(!box.classList.contains('open')));
+  document.addEventListener('click', e => { if (!box.contains(e.target)) set(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') set(false); });
 }
