@@ -623,16 +623,6 @@ input, button, select, textarea { font-family: inherit; }
   .m-sub a { display: block; padding: 12px 4px 12px 18px; font-size: 1rem; font-weight: 400; border-bottom: 1px solid var(--line); }
   .m-sub a:hover { color: var(--red); }
 }
-/* slim "browse products" band on the landing page (between hero and category carousel) */
-.browse-band { margin: 28px 0 0; padding: 0 var(--gutter); }
-.browse-band-in { display: flex; align-items: center; gap: 20px; padding: 16px 28px 16px 24px; background: #f1f1f1; border-radius: 12px; }
-.bb-text { flex: 1; min-width: 0; padding-left: 18px; border-left: 4px solid var(--red); }
-.bb-text h2 { margin: 0; font-size: 1.25rem; font-weight: 700; line-height: 1.25; }
-.bb-text p { margin: 2px 0 0; font-size: 0.9375rem; color: #333; }
-.bb-arrows { flex: none; height: 2.5rem; width: auto; fill: none; stroke: #666; stroke-opacity: .5; stroke-width: 6; stroke-linejoin: miter; }
-.browse-band .btn { flex: none; padding: 9px 22px; font-size: 0.8125rem; }
-.browse-band + .section { padding-top: 40px; }
-@media (max-width: 560px) { .browse-band-in { flex-wrap: wrap; padding: 14px 16px; } .bb-text { flex-basis: 100%; } .bb-text h2 { font-size: 1.0625rem; } .bb-arrows { display: none; } .browse-band .btn { margin-left: 22px; } }
 
 .account-btn { background: none; border: 0; padding: 0; cursor: pointer; }
 .logout-btn { display: block; margin-top: 12px; padding: 8px 14px; border-radius: 8px; background: var(--red); color: #fff; font-size: 0.8125rem; font-weight: 700; text-align: center; transition: background-color .2s ease; }

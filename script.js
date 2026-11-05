@@ -424,16 +424,6 @@ const pages = {
           <a class="btn btn-red" href="${sl.href}">${sl.cta}</a>
         </div>`).join('')}
       </section>
-      <section class="browse-band" aria-label="${t('browse_products')}">
-        <div class="wrap browse-band-in">
-          <div class="bb-text">
-            <h2>${tr('Looking for something specific?', 'Leder du efter noget bestemt?')}</h2>
-            <p>${tr('Explore our full range of products.', 'Udforsk hele vores udvalg af produkter.')}</p>
-          </div>
-          <svg class="bb-arrows" viewBox="716 106 497 359" aria-hidden="true"><path d="M721.4 111.3L807.1 285.5 721.4 459.8H881.2L966.9 285.5 881.2 111.3zM961.6 111.3L1047.3 285.5 961.6 459.8H1121.4L1207.1 285.5 1121.4 111.3z"/></svg>
-          <a class="btn btn-red" href="shop.html">${t('browse_products')}</a>
-        </div>
-      </section>
       <section class="section">
         <div class="wrap">${heading(t('browse_by_cat'))}</div>
         <div class="cat-carousel" aria-roledescription="carousel" aria-label="${t('product_categories')}">
